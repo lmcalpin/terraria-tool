@@ -1,0 +1,16 @@
+terraria-tool
+
+This is a simple tool to parse Terraria world files.
+
+
+To use, simply type:
+
+sbt "run <path-to-world-file> <action>"
+
+Have lots of heap space available.
+
+Only two actions are supported right now: 
+
+ - stats <default action>: shows some information about the world, such as what is in the chests, and what NPCs are wandering around your world
+ - map: dumps an ASCII map of the world
+

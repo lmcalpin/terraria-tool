@@ -251,6 +251,7 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Grass => 'G'
                     case TileType.Stone => 'S'
                     case TileType.Chest => 'C'
+                    case TileType.Trees => 'T'
                     case _ => 'X'
                 }
                 map(y)(x) = c

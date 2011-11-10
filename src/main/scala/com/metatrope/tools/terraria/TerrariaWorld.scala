@@ -247,11 +247,28 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Sky => if (tile.isLiquid) 'w' else ' '
                     case TileType.Door | TileType.DoorOpen => 'D'
                     case TileType.Iron | TileType.Copper | TileType.Gold | TileType.Silver => 'O'
+                    case TileType.Amethyst | TileType.Emerald | TileType.Topaz | TileType.Ebonstone => '$'
                     case TileType.Heart => 'H'
                     case TileType.Grass => 'G'
                     case TileType.Stone => 'S'
                     case TileType.Chest => 'C'
                     case TileType.Trees => 'T'
+                    case TileType.Clay => 'C'
+                    case TileType.Mud => 'M'
+                    case TileType.Sand => '.'
+                    case TileType.WoodenPlatform => '-'
+                    case TileType.Dirt => '='
+                    case TileType.BlockBlueStone | 
+                            TileType.BlockCopper |
+                            TileType.BlockGold |
+                            TileType.BlockGreenStone |
+                            TileType.BlockHellstone |
+                            TileType.BlockObsidian |
+                            TileType.BlockPinkStone |
+                            TileType.BlockRedStone |
+                            TileType.BlockSilver |
+                            TileType.BlockStone | 
+                            TileType.BlockWood => '|'
                     case _ => 'X'
                 }
                 map(y)(x) = c

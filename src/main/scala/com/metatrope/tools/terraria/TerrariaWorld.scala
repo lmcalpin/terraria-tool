@@ -183,6 +183,10 @@ class TerrariaWorld(resource: String) extends IO {
         } else {
             val BUFSIZE = 4096
             val stream = getClass.getResourceAsStream("/" + resource)
+            if (stream == null) {
+              println("File not found: " + resource)
+              exit()
+            }
             val out = new ByteArrayOutputStream(BUFSIZE);
             val tmp = Array.ofDim[Byte](BUFSIZE);
             var continue = true
@@ -236,13 +240,17 @@ class TerrariaWorld(resource: String) extends IO {
         npcs.toList
     }
 
-    def emitMap = {
-        val sizeX = header.sizex.toInt
-        val sizeY = header.sizey.toInt
-        val map = Array.ofDim[Character](header.sizey.intValue, header.sizex.intValue)
+    def emitMap(fromX:Int,fromY:Int,toX:Int,toY:Int) = {
+        println("Emitting map from " + fromX + "x" + fromY + " to " + toX + "x" + toY)
+        val startX = fromX - 1
+        val startY = fromY - 1
+        val sizeX = toX - fromX + 1
+        val sizeY = toY - fromY + 1
+        println("Total size of world is " + sizeX + "x" + sizeY)
+        val map = Array.ofDim[Character](sizeY,sizeX)
         for (y <- 0 to sizeY-1 ) {
             for (x <- 0 to sizeX-1) {
-                val tile = tiles(x)(y)
+                val tile = tiles(x+startX)(y+startY)
                 val c = tile.tileType match {
                     case TileType.Sky => if (tile.isLiquid) 'w' else ' '
                     case TileType.Door | TileType.DoorOpen => 'd'
@@ -255,8 +263,10 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Ebonstone => 'E'
                     case TileType.Heart => '@'
                     case TileType.Chest => '$'
+                    case TileType.Pot => 'P'
                     case TileType.Trees => 'T'
                     case TileType.Altar => 'A'
+                    case TileType.ShadowOrb => 'O'
                     // ores
                     case TileType.Iron => 'I'
                     case TileType.Copper => 'C'
@@ -272,6 +282,9 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Sand => '.'
                     case TileType.Dirt => ','
                     // player placed tiles
+                    case TileType.Anvil |
+                            TileType.Furnace |
+                            TileType.CraftingTable => '+'
                     case TileType.WoodenPlatform => '-'
                     case TileType.BlockBlueStone | 
                             TileType.BlockCopper |
@@ -314,12 +327,26 @@ object TerrariaWorld {
 
         val world = new TerrariaWorld(path)
         if (action.equalsIgnoreCase("map")) {
-            world.emitMap
-        } else {
-            println("Loaded world: " + world.header.name)
-            if (!world.header.name.equals(world.footer.name)) {
-                println(" *** FILE WAS NOT READ SUCCESSFULLY *** ")
+            var fromx = 1
+            var fromy = 1
+            var tox = world.header.sizex
+            var toy = world.header.sizey
+            args.foreach { arg =>
+              if (arg.startsWith("--from=")) {
+                val rem = arg.substring("--from=".length()).split("x")
+                fromx = rem(0).toInt - 1
+                fromy = rem(1).toInt - 1
+              } else if (arg.startsWith("--to=")) {
+                val rem = arg.substring("--to=".length()).split("x")
+                tox = rem(0).toInt - 1
+                toy = rem(1).toInt - 1
+              } else {
+                println("Did not recognize argument: " + arg);
+              }
             }
+            world.emitMap(fromx,fromy,tox.toInt,toy.toInt)
+        } else if (action.equalsIgnoreCase("stats")) {
+            println("Loaded world: " + world.header.name)
             println("Size is: " + world.header.sizex + "x" + world.header.sizey)
             println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
             println("Dungeon:  " + world.header.dungeonX + "x" + world.header.dungeonY)
@@ -341,6 +368,8 @@ object TerrariaWorld {
                     println("NPC '" + npc.name + "'")
                 }
             }
+        } else {
+          println("Invalid action: " + action)
         }
     }
 }

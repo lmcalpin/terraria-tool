@@ -25,7 +25,7 @@ object TileType extends Enumeration {
     val Table = new TileTypeValue(14, true)
     val Chair = new TileTypeValue(15, true)
     val Anvil = new TileTypeValue(16, true)
-    val Furnance = new TileTypeValue(17, true)
+    val Furnace = new TileTypeValue(17, true)
     val CraftingTable = new TileTypeValue(18, true)
     val WoodenPlatform = new TileTypeValue(19, false)
     val PlantsDecorative = new TileTypeValue(20, true)

@@ -247,13 +247,21 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Sky => if (tile.isLiquid) 'w' else ' '
                     case TileType.Door | TileType.DoorOpen => 'D'
                     case TileType.Iron | TileType.Copper | TileType.Gold | TileType.Silver => 'O'
-                    case TileType.Amethyst | TileType.Emerald | TileType.Topaz | TileType.Ebonstone => '$'
+                    case TileType.Amethyst | 
+                            TileType.Sapphire | 
+                            TileType.Ruby | 
+                            TileType.Diamond |
+                            TileType.Emerald | 
+                            TileType.Topaz | 
+                            TileType.Ebonstone => '^'
                     case TileType.Heart => 'H'
                     case TileType.Grass => 'G'
                     case TileType.Stone => 'S'
-                    case TileType.Chest => 'C'
+                    case TileType.Chest => '$'
                     case TileType.Trees => 'T'
+                    case TileType.Altar => 'A'
                     case TileType.Clay => 'C'
+                    case TileType.Demonite => '@'
                     case TileType.Mud => 'M'
                     case TileType.Sand => '.'
                     case TileType.WoodenPlatform => '-'

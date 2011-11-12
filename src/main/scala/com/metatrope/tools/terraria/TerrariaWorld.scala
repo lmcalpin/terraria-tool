@@ -253,7 +253,7 @@ class TerrariaWorld(resource: String) extends IO {
                             TileType.Emerald | 
                             TileType.Topaz => '^' 
                     case TileType.Ebonstone => 'E'
-                    case TileType.Heart => '\u0003'
+                    case TileType.Heart => '@'
                     case TileType.Chest => '$'
                     case TileType.Trees => 'T'
                     case TileType.Altar => 'A'

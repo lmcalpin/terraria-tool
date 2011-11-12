@@ -245,27 +245,34 @@ class TerrariaWorld(resource: String) extends IO {
                 val tile = tiles(x)(y)
                 val c = tile.tileType match {
                     case TileType.Sky => if (tile.isLiquid) 'w' else ' '
-                    case TileType.Door | TileType.DoorOpen => 'D'
-                    case TileType.Iron | TileType.Copper | TileType.Gold | TileType.Silver => 'O'
+                    case TileType.Door | TileType.DoorOpen => 'd'
                     case TileType.Amethyst | 
                             TileType.Sapphire | 
                             TileType.Ruby | 
                             TileType.Diamond |
                             TileType.Emerald | 
-                            TileType.Topaz | 
-                            TileType.Ebonstone => '^'
-                    case TileType.Heart => 'H'
-                    case TileType.Grass => 'G'
-                    case TileType.Stone => 'S'
+                            TileType.Topaz => '^' 
+                    case TileType.Ebonstone => 'E'
+                    case TileType.Heart => '\u0003'
                     case TileType.Chest => '$'
                     case TileType.Trees => 'T'
                     case TileType.Altar => 'A'
-                    case TileType.Clay => 'C'
-                    case TileType.Demonite => '@'
-                    case TileType.Mud => 'M'
+                    // ores
+                    case TileType.Iron => 'I'
+                    case TileType.Copper => 'C'
+                    case TileType.Gold => 'G'
+                    case TileType.Silver => 'S'
+                    case TileType.Demonite => 'D'
+                    case TileType.Hellstone => 'H'
+                    // ground tiles
+                    case TileType.Clay => 'c'
+                    case TileType.Stone => 's'
+                    case TileType.Grass => ';'
+                    case TileType.Mud => 'm'
                     case TileType.Sand => '.'
+                    case TileType.Dirt => ','
+                    // player placed tiles
                     case TileType.WoodenPlatform => '-'
-                    case TileType.Dirt => '='
                     case TileType.BlockBlueStone | 
                             TileType.BlockCopper |
                             TileType.BlockGold |
@@ -277,6 +284,7 @@ class TerrariaWorld(resource: String) extends IO {
                             TileType.BlockSilver |
                             TileType.BlockStone | 
                             TileType.BlockWood => '|'
+                    // extra
                     case _ => 'X'
                 }
                 map(y)(x) = c

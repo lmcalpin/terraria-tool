@@ -114,6 +114,7 @@ object TileType extends Enumeration {
     val Plate = new TileTypeValue(103, true)
     val Clock = new TileTypeValue(104, true)
     val SuitOfArmor = new TileTypeValue(105, true)
+    val Sawmill = new TileTypeValue(106, true)
     val Unknown = new TileTypeValue(127, false)
     val Spawn = new TileTypeValue(256, false)
     val ArmsDealer = new TileTypeValue(257, false)

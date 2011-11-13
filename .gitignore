@@ -4,8 +4,8 @@ target
 .scala_dependencies
 .target
 project
-map.txt
 .svn
 *.wld
 *.bat
 stats
+*.txt

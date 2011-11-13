@@ -240,13 +240,13 @@ class TerrariaWorld(resource: String) extends IO {
         npcs.toList
     }
 
-    def emitMap(fromX:Int,fromY:Int,toX:Int,toY:Int) = {
+    def emitMap(fromX:Int,fromY:Int,toX:Int,toY:Int,outfile:String) = {
         println("Emitting map from " + fromX + "x" + fromY + " to " + toX + "x" + toY)
         val startX = fromX - 1
         val startY = fromY - 1
         val sizeX = toX - fromX + 1
         val sizeY = toY - fromY + 1
-        println("Total size of world is " + sizeX + "x" + sizeY)
+        println("Total size of map will be " + sizeX + "x" + sizeY)
         val map = Array.ofDim[Character](sizeY,sizeX)
         for (y <- 0 to sizeY-1 ) {
             for (x <- 0 to sizeX-1) {
@@ -276,15 +276,29 @@ class TerrariaWorld(resource: String) extends IO {
                     case TileType.Hellstone => 'H'
                     // ground tiles
                     case TileType.Clay => 'c'
-                    case TileType.Stone => 's'
-                    case TileType.Grass => ';'
+                    case TileType.Stone => '='
+                    case TileType.Grass |
+                            TileType.CorruptionGrass => ':'
                     case TileType.Mud => 'm'
-                    case TileType.Sand => '.'
-                    case TileType.Dirt => ','
+                    case TileType.Sand => 's'
+                    case TileType.Dirt => '.'
+                    case TileType.Plants |
+                            TileType.Plants2 |
+                            TileType.Plants3 |
+                            TileType.CorruptionPlants => 'p'
+                    case TileType.Vines |
+                            TileType.CorruptionVines => ';'
                     // player placed tiles
+                    case TileType.Torch => '`'
                     case TileType.Anvil |
+                            TileType.Sawmill |
                             TileType.Furnace |
                             TileType.CraftingTable => '+'
+                    case TileType.Table |
+                            TileType.Bed |
+                            TileType.Bench |
+                            TileType.Bathtub |
+                            TileType.Dresser => 'f'
                     case TileType.WoodenPlatform => '-'
                     case TileType.BlockBlueStone | 
                             TileType.BlockCopper |
@@ -304,7 +318,7 @@ class TerrariaWorld(resource: String) extends IO {
             }
         }
         val sb = new StringBuilder
-        printToFile("map.txt") { p =>
+        printToFile(outfile) { p =>
             map.foreach { row =>
                 row.foreach { char =>
                     p.append(char)
@@ -326,11 +340,13 @@ object TerrariaWorld {
         val action = if (args.length >= 2) args(1) else "stats"
 
         val world = new TerrariaWorld(path)
-        if (action.equalsIgnoreCase("map")) {
+        action match {
+          case "map" => {
             var fromx = 1
             var fromy = 1
             var tox = world.header.sizex
             var toy = world.header.sizey
+            var outfile = "map.txt"
             args.foreach { arg =>
               if (arg.startsWith("--from=")) {
                 val rem = arg.substring("--from=".length()).split("x")
@@ -340,12 +356,13 @@ object TerrariaWorld {
                 val rem = arg.substring("--to=".length()).split("x")
                 tox = rem(0).toInt - 1
                 toy = rem(1).toInt - 1
-              } else {
-                println("Did not recognize argument: " + arg);
+              } else if (arg.startsWith("--outfile=")) {
+                outfile = arg.substring("--outfile=".length())
               }
             }
-            world.emitMap(fromx,fromy,tox.toInt,toy.toInt)
-        } else if (action.equalsIgnoreCase("stats")) {
+            world.emitMap(fromx,fromy,tox.toInt,toy.toInt,outfile)
+          }
+          case "stats" => {
             println("Loaded world: " + world.header.name)
             println("Size is: " + world.header.sizex + "x" + world.header.sizey)
             println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
@@ -368,8 +385,8 @@ object TerrariaWorld {
                     println("NPC '" + npc.name + "'")
                 }
             }
-        } else {
-          println("Invalid action: " + action)
+          }
+          case _ => println("Invalid action: " + action) 
         }
     }
 }

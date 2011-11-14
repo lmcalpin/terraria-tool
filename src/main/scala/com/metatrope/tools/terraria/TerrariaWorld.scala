@@ -207,7 +207,7 @@ class TerrariaWorld(resource: String) extends IO {
       for (x <- 0 to sizeX - 1) {
         val tile = tiles(x + startX)(y + startY)
         val c = tile.tileType match {
-          case TileType.Unknown => println("Unknown tile at loc: " + (x+startX) + "x" + (y+startY)); '?'
+          case TileType.Unknown => println("Unknown tile at loc: " + (x + startX) + "x" + (y + startY)); '?'
           case TileType.Sky => if (tile.isLiquid) 'w' else ' '
           case TileType.Door | TileType.DoorOpen => 'd'
           case TileType.Amethyst |
@@ -231,6 +231,10 @@ class TerrariaWorld(resource: String) extends IO {
           case TileType.Demonite => 'D'
           case TileType.Hellstone => 'H'
           // ground tiles
+          case TileType.DecorativePot => 'u'
+          case TileType.HerbBlooming |
+              TileType.HerbImmature |
+              TileType.HerbMature => 'h'
           case TileType.Clay => 'c'
           case TileType.Stone => '='
           case TileType.Grass |
@@ -245,7 +249,9 @@ class TerrariaWorld(resource: String) extends IO {
           case TileType.Vines |
             TileType.CorruptionVines => ';'
           // player placed tiles
-          case TileType.Torch => '`'
+          case TileType.Torch | 
+            TileType.Lamppost |
+            TileType.Tikitorch => '`'
           case TileType.Anvil |
             TileType.Sawmill |
             TileType.Furnace |
@@ -304,60 +310,59 @@ object TerrariaWorld {
     val world = new TerrariaWorld(path)
     action match {
       case "map" => {
-        var fromx = 1
-        var fromy = 1
-        var tox = world.header.sizex
-        var toy = world.header.sizey
-        var outfile = "map.txt"
-        args.foreach { arg =>
-          argval(arg, "--from=") match {
-            case Some(x) => {
-              val rem = x.split("x")
-              fromx = rem(0).toInt - 1
-              fromy = rem(1).toInt - 1
-            }
-            case _ =>
-          }
-          argval(arg, "--to=") match {
-            case Some(x) => {
-              val rem = x.split("x")
-              tox = rem(0).toInt - 1
-              toy = rem(1).toInt - 1
-            }
-            case _ =>
-          }
-          argval(arg, "--outfile=") match {
-            case Some(x) => outfile = x
-            case _ =>
-          }
-        }
-        world.emitMap(fromx, fromy, tox.toInt, toy.toInt, outfile)
+        emitMap(args, world)
       }
       case "stats" => {
-        println("Loaded world: " + world.header.name)
-        println("Size is: " + world.header.sizex + "x" + world.header.sizey)
-        println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
-        println("Dungeon:  " + world.header.dungeonX + "x" + world.header.dungeonY)
-        println("Chests:")
-        world.chests.foreach { chest =>
-          if (chest.active) {
-            println("Chest at " + chest.x + "x" + chest.y + " containing: " + chest.contents.deep.mkString(","))
-          }
-        }
-        println("Signs:")
-        world.signs.foreach { sign =>
-          if (sign.active && sign.text.length() > 0) {
-            println("Sign #" + sign.id + ": " + sign.text)
-          }
-        }
-        println("NPCs:")
-        world.npcs.foreach { npc =>
-          if (npc.active) {
-            println("NPC '" + npc.name + "'")
-          }
-        }
+        printStats(world)
       }
       case _ => println("Invalid action: " + action)
+    }
+  }
+  
+  private def emitMap(args: Array[String], world: com.metatrope.tools.terraria.TerrariaWorld): Unit = {
+    var fromx = 1
+    var fromy = 1
+    var tox = world.header.sizex
+    var toy = world.header.sizey
+    var outfile = "map.txt"
+    args.foreach { arg =>
+      argval(arg, "--from=").map( x => {
+        val rem = x.split("x")
+        fromx = rem(0).toInt - 1
+        fromy = rem(1).toInt - 1
+      })
+      argval(arg, "--to=").map(x => {
+          val rem = x.split("x")
+          tox = rem(0).toInt - 1
+          toy = rem(1).toInt - 1
+      })
+      argval(arg, "--outfile=").map(outfile = _)
+    }
+    world.emitMap(fromx, fromy, tox.toInt, toy.toInt, outfile)
+  }
+  
+  private def printStats(world: com.metatrope.tools.terraria.TerrariaWorld): Unit = {
+    println("Loaded world: " + world.header.name)
+    println("Size is: " + world.header.sizex + "x" + world.header.sizey)
+    println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
+    println("Dungeon:  " + world.header.dungeonX + "x" + world.header.dungeonY)
+    println("Chests:")
+    world.chests.foreach { chest =>
+      if (chest.active) {
+        println("Chest at " + chest.x + "x" + chest.y + " containing: " + chest.contents.deep.mkString(","))
+      }
+    }
+    println("Signs:")
+    world.signs.foreach { sign =>
+      if (sign.active && sign.text.length() > 0) {
+        println("Sign #" + sign.id + ": " + sign.text)
+      }
+    }
+    println("NPCs:")
+    world.npcs.foreach { npc =>
+      if (npc.active) {
+        println("NPC '" + npc.name + "'")
+      }
     }
   }
 }

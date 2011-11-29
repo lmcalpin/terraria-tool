@@ -40,6 +40,11 @@ trait ByteReader {
   def readByte: Byte = {
     buffer.get
   }
+  
+  // Byte is signed, but the Terraria file stores unsigned bytes
+  def readUnsignedByte: Short = {
+    (buffer.get & 0xff).toShort
+  }
 
   def readInt: Int = {
     buffer.getInt
@@ -58,12 +63,11 @@ trait ByteReader {
   }
 
   def readBoolean: Boolean = {
-    val byte = buffer.get
-    return (byte != 0)
+    buffer.get != 0
   }
 
   def unsigned(int: Int): Long = {
-    return int & 0xffffffffL
+    int & 0xffffffffL
   }
 }
 

@@ -29,16 +29,16 @@ class TerrariaWorldHeader(val buffer: ByteBuffer) extends ByteReader {
   val surfaceLevel = readDouble
   val rockLayer = readDouble
   val temporaryTime = readDouble
-  val isDayTime = readByte
+  val isDayTime = readUnsignedByte
   val moonPhase = readInt
-  val isBloodMoon = readByte
+  val isBloodMoon = readUnsignedByte
   val dungeonX = readInt
   val dungeonY = readInt
-  val isBoss1Dead = readByte
-  val isBoss2Dead = readByte
-  val isBoss3Dead = readByte
-  val isShadowOrbSmashed = readByte
-  val shadowOrbSmashed = readByte
+  val isBoss1Dead = readUnsignedByte
+  val isBoss2Dead = readUnsignedByte
+  val isBoss3Dead = readUnsignedByte
+  val isShadowOrbSmashed = readUnsignedByte
+  val shadowOrbSmashed = readUnsignedByte
   val invasionDelay = readInt
   val invasionSize = readInt
   val invasionType = readInt
@@ -47,15 +47,15 @@ class TerrariaWorldHeader(val buffer: ByteBuffer) extends ByteReader {
 
 class TerrariaTile(val buffer: ByteBuffer, val x: Int, val y: Int) extends ByteReader {
   val active = readBoolean
-  private var tileTypeVal = if (active) readByte else TileType.Sky.code
+  private var tileTypeVal = if (active) readUnsignedByte else TileType.Sky.code
   val isImportant = _isImportant(tileTypeVal)
   val tileFrameX = if (isImportant) readShort else 0
   val tileFrameY = if (isImportant) readShort else 0
   val isLighted = readBoolean
   val isWall = readBoolean
-  val wallType = if (isWall) readByte else 0
+  val wallType = if (isWall) readUnsignedByte else 0
   val isLiquid = readBoolean
-  val liquidLevel = if (isLiquid) readByte else 0
+  val liquidLevel = if (isLiquid) readUnsignedByte else 0
   val isLava = if (isLiquid) readBoolean else false
   val tileType = TileType.withId(tileTypeVal, TileType.Unknown)
 
@@ -71,7 +71,7 @@ class TerrariaTile(val buffer: ByteBuffer, val x: Int, val y: Int) extends ByteR
 }
 
 class TerrariaItem(val buffer: ByteBuffer) extends ByteReader {
-  val count = readByte
+  val count = readUnsignedByte
   val name = if (count > 0) readFixedString else ""
   override def toString(): String = {
     count + " " + name
@@ -94,6 +94,9 @@ class TerrariaChest(val buffer: ByteBuffer) extends ByteReader {
     }
     contents
   }
+  override def toString(): String = {
+    "chest at " + x + "x" + y + ": " + active
+  }
 }
 
 class TerrariaSign(val buffer: ByteBuffer, val id: Int) extends ByteReader {
@@ -101,6 +104,9 @@ class TerrariaSign(val buffer: ByteBuffer, val id: Int) extends ByteReader {
   val text = if (active) readFixedString else ""
   val x = if (active) readInt else 0
   val y = if (active) readInt else 0
+  override def toString(): String = {
+    "sign at " + x + "x" + y + ": " + active + ", text = " + text
+  }
 }
 
 class TerrariaNpc(val buffer: ByteBuffer) extends ByteReader {
@@ -172,6 +178,7 @@ class TerrariaWorld(resource: String) extends IO {
     val chests = Array.ofDim[TerrariaChest](1000)
     for (i <- 1 to 1000) {
       chests(i - 1) = new TerrariaChest(buffer)
+      println("Found " + chests(i-1).toString)
     }
     chests
   }
@@ -180,6 +187,7 @@ class TerrariaWorld(resource: String) extends IO {
     val signs = Array.ofDim[TerrariaSign](1000)
     for (i <- 1 to 1000) {
       signs(i - 1) = new TerrariaSign(buffer, i)
+      println("Found " + signs(i-1))
     }
     signs
   }
@@ -233,8 +241,8 @@ class TerrariaWorld(resource: String) extends IO {
           // ground tiles
           case TileType.DecorativePot => 'u'
           case TileType.HerbBlooming |
-              TileType.HerbImmature |
-              TileType.HerbMature => 'h'
+            TileType.HerbImmature |
+            TileType.HerbMature => 'h'
           case TileType.Clay => 'c'
           case TileType.Stone => '='
           case TileType.Grass |
@@ -249,7 +257,7 @@ class TerrariaWorld(resource: String) extends IO {
           case TileType.Vines |
             TileType.CorruptionVines => ';'
           // player placed tiles
-          case TileType.Torch | 
+          case TileType.Torch |
             TileType.Lamppost |
             TileType.Tikitorch => '`'
           case TileType.Anvil |
@@ -318,7 +326,7 @@ object TerrariaWorld {
       case _ => println("Invalid action: " + action)
     }
   }
-  
+
   private def emitMap(args: Array[String], world: com.metatrope.tools.terraria.TerrariaWorld): Unit = {
     var fromx = 1
     var fromy = 1
@@ -326,23 +334,27 @@ object TerrariaWorld {
     var toy = world.header.sizey
     var outfile = "map.txt"
     args.foreach { arg =>
-      argval(arg, "--from=").map( x => {
+      argval(arg, "--from=").map(x => {
         val rem = x.split("x")
         fromx = rem(0).toInt - 1
         fromy = rem(1).toInt - 1
       })
       argval(arg, "--to=").map(x => {
-          val rem = x.split("x")
-          tox = rem(0).toInt - 1
-          toy = rem(1).toInt - 1
+        val rem = x.split("x")
+        tox = rem(0).toInt - 1
+        toy = rem(1).toInt - 1
       })
       argval(arg, "--outfile=").map(outfile = _)
     }
     world.emitMap(fromx, fromy, tox.toInt, toy.toInt, outfile)
   }
-  
+
   private def printStats(world: com.metatrope.tools.terraria.TerrariaWorld): Unit = {
     println("Loaded world: " + world.header.name)
+    if (!world.footer.name.equalsIgnoreCase(world.header.name)) {
+      println("WARNING: the world file was not parsed correctly!!!")
+      println("It is either corrupt or in a version too new for this parser to handle")
+    }
     println("Size is: " + world.header.sizex + "x" + world.header.sizey)
     println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
     println("Dungeon:  " + world.header.dungeonX + "x" + world.header.dungeonY)

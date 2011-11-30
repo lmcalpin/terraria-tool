@@ -178,7 +178,6 @@ class TerrariaWorld(resource: String) extends IO {
     val chests = Array.ofDim[TerrariaChest](1000)
     for (i <- 1 to 1000) {
       chests(i - 1) = new TerrariaChest(buffer)
-      println("Found " + chests(i-1).toString)
     }
     chests
   }
@@ -187,7 +186,6 @@ class TerrariaWorld(resource: String) extends IO {
     val signs = Array.ofDim[TerrariaSign](1000)
     for (i <- 1 to 1000) {
       signs(i - 1) = new TerrariaSign(buffer, i)
-      println("Found " + signs(i-1))
     }
     signs
   }

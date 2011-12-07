@@ -13,6 +13,7 @@ import java.io.ByteArrayOutputStream
 import scala.util.control.Breaks._
 import com.metatrope.util.IO
 import com.metatrope.util.ByteReader
+import java.io.PrintWriter
 
 class TerrariaWorldHeader(val buffer: ByteBuffer) extends ByteReader {
   val version = readInt
@@ -37,27 +38,68 @@ class TerrariaWorldHeader(val buffer: ByteBuffer) extends ByteReader {
   val isBoss1Dead = readUnsignedByte
   val isBoss2Dead = readUnsignedByte
   val isBoss3Dead = readUnsignedByte
+  val isGoblinSaved = if (version >= 36) readUnsignedByte else false
+  val isWizardSaved = if (version >= 36) readUnsignedByte else false
+  val isMechanicSaved = if (version >= 36) readUnsignedByte else false
+  val isGoblinArmyDefeated = if (version >= 36) readUnsignedByte else false
+  val isClownDefeated = if (version >= 36) readUnsignedByte else false
   val isShadowOrbSmashed = readUnsignedByte
+  val isMeteorSpawned = readUnsignedByte
   val shadowOrbSmashed = readUnsignedByte
+  val altarsDestroyed = if (version >= 36) readInt else false
+  val hardMode = if (version >= 36) readUnsignedByte else false
   val invasionDelay = readInt
   val invasionSize = readInt
   val invasionType = readInt
   val invasionPointX = readDouble
 }
 
-class TerrariaTile(val buffer: ByteBuffer, val x: Int, val y: Int) extends ByteReader {
+trait TerrariaTile {
+  def active: Boolean
+  def isImportant: Boolean
+  def tileFrameX: Int
+  def tileFrameY: Int
+  def isLighted: Boolean
+  def isWall: Boolean
+  def wallType: Int
+  def isLiquid: Boolean
+  def liquidLevel: Int
+  def isLava: Boolean
+  def hasWire: Boolean
+  def tileType: TileType.TileTypeValue
+}
+
+class TerrariaTileCopy(val clonedTile: TerrariaTile, val newX: Int, val newY: Int) extends TerrariaTile {
+  val x = newX
+  val y = newY
+  val active = clonedTile.active
+  val isImportant = clonedTile.isImportant
+  val tileFrameX = clonedTile.tileFrameX
+  val tileFrameY = clonedTile.tileFrameY
+  val isLighted = clonedTile.isLighted
+  val isWall = clonedTile.isWall
+  val wallType = clonedTile.wallType
+  val isLiquid = clonedTile.isLiquid
+  val liquidLevel = clonedTile.liquidLevel
+  val isLava = clonedTile.isLava
+  val hasWire = clonedTile.hasWire
+  val tileType = clonedTile.tileType
+}
+
+class TerrariaTileParser10(val buffer: ByteBuffer, val header: TerrariaWorldHeader, val x: Int, val y: Int) extends ByteReader with TerrariaTile {
   val active = readBoolean
   private var tileTypeVal = if (active) readUnsignedByte else TileType.Sky.code
   val isImportant = _isImportant(tileTypeVal)
   val tileFrameX = if (isImportant) readShort else 0
   val tileFrameY = if (isImportant) readShort else 0
-  val isLighted = readBoolean
+  val isLighted = if (header.version < 36) readBoolean else false
   val isWall = readBoolean
   val wallType = if (isWall) readUnsignedByte else 0
   val isLiquid = readBoolean
   val liquidLevel = if (isLiquid) readUnsignedByte else 0
   val isLava = if (isLiquid) readBoolean else false
   val tileType = TileType.withId(tileTypeVal, TileType.Unknown)
+  val hasWire = false
 
   override def toString(): String = {
     "Tile type " + tileTypeVal + " placed at " + tileFrameX + "x" + tileFrameY + "."
@@ -66,19 +108,72 @@ class TerrariaTile(val buffer: ByteBuffer, val x: Int, val y: Int) extends ByteR
   private def _isImportant(v: Int): Boolean = {
     if (!active) return false
     val important = TileType.withId(v, TileType.Unknown).important
-    important
+    important(header.version)
   }
 }
 
-class TerrariaItem(val buffer: ByteBuffer) extends ByteReader {
+class TerrariaTileParser11(val buffer: ByteBuffer, val header: TerrariaWorldHeader, val x: Int, val y: Int) extends ByteReader with TerrariaTile {
+  val active = readBoolean
+  private var tileTypeVal = if (active) readUnsignedByte else TileType.Sky.code
+  val isImportant = _isImportant(tileTypeVal)
+  val tileFrameX = if (isImportant) readShort else 0
+  val tileFrameY = if (isImportant) readShort else 0
+  val isLighted = false
+  val isWall = readBoolean
+  val wallType = if (isWall) readUnsignedByte else 0
+  val isLiquid = readBoolean
+  val liquidLevel = if (isLiquid) readUnsignedByte else 0
+  val isLava = if (isLiquid) readBoolean else false
+  val hasWire = if (header.version >= 36) readBoolean else false
+  val tileType = TileType.withId(tileTypeVal, TileType.Unknown)
+  val rleRemaining = if (header.version >= 36) readShort else 0
+
+  override def toString(): String = {
+    "Tile type " + tileTypeVal + " placed at " + tileFrameX + "x" + tileFrameY + "."
+  }
+
+  private def _isImportant(v: Int): Boolean = {
+    if (!active) return false
+    val important = TileType.withId(v, TileType.Unknown).important
+    important(header.version)
+  }
+}
+
+object TerrariaTileParser extends IO {
+  var rleRemaining: Int = 0
+  var lastTile: TerrariaTile = null
+  var lastX: Int = 0
+  var lastY: Int = 0
+
+  def make(buffer: ByteBuffer, header: TerrariaWorldHeader, x: Int, y: Int): TerrariaTile = {
+    if (rleRemaining == 0) {
+      lastX = x; lastY = y
+      val parsedTile = if (header.version >= 36) {
+        val parser = new TerrariaTileParser11(buffer, header, x, y)
+        rleRemaining = parser.rleRemaining
+        parser
+      } else new TerrariaTileParser10(buffer, header, x, y)
+      lastTile = parsedTile
+      lastTile
+    } else {
+      rleRemaining -= 1
+      new TerrariaTileCopy(lastTile, x, y)
+    }
+
+  }
+}
+
+class TerrariaItem(val buffer: ByteBuffer, val header:TerrariaWorldHeader) extends ByteReader {
   val count = readUnsignedByte
   val name = if (count > 0) readFixedString else ""
+  val prefix = if (count > 0 && header.version >= 36) readUnsignedByte else 0
+  
   override def toString(): String = {
     count + " " + name
   }
 }
 
-class TerrariaChest(val buffer: ByteBuffer) extends ByteReader {
+class TerrariaChest(val buffer: ByteBuffer, val header:TerrariaWorldHeader) extends ByteReader {
   val active = readBoolean
   val x = if (active) readInt else 0
   val y = if (active) readInt else 0
@@ -88,7 +183,7 @@ class TerrariaChest(val buffer: ByteBuffer) extends ByteReader {
     val contents = Array.ofDim[TerrariaItem](20)
     if (active) {
       for (i <- 1 to 20) {
-        val item = new TerrariaItem(buffer)
+        val item = new TerrariaItem(buffer, header)
         contents(i - 1) = item
       }
     }
@@ -119,6 +214,19 @@ class TerrariaNpc(val buffer: ByteBuffer) extends ByteReader {
   val homeY = if (active) readInt else 0
 }
 
+class TerrariaNpcNames(val buffer: ByteBuffer, val header:TerrariaWorldHeader) extends ByteReader {
+  val merchantName = if (header.version >= 36) readFixedString else ""
+  val nursesName = if (header.version >= 36) readFixedString else ""
+  val armsDealersName = if (header.version >= 36) readFixedString else ""
+  val dryadsName = if (header.version >= 36) readFixedString else ""
+  val guidesName = if (header.version >= 36) readFixedString else ""
+  val clothiersName = if (header.version >= 36) readFixedString else ""
+  val demolitionistsName = if (header.version >= 36) readFixedString else ""
+  val tinkerersName = if (header.version >= 36) readFixedString else ""
+  val wizardsName = if (header.version >= 36) readFixedString else ""
+  val mechanicsName = if (header.version >= 36) readFixedString else ""
+}
+
 class TerrariaFooter(val buffer: ByteBuffer) extends ByteReader {
   val active = readBoolean
   val name = readFixedString
@@ -133,6 +241,7 @@ class TerrariaWorld(resource: String) extends IO {
   val chests = parseChests
   val signs = parseSigns
   val npcs = parseNpcs
+  val npcNames = parseNpcNames
   val footer = new TerrariaFooter(buffer)
 
   private def loadFile(resource: String): ByteBuffer = {
@@ -168,7 +277,7 @@ class TerrariaWorld(resource: String) extends IO {
     val tiles = Array.ofDim[TerrariaTile](sizeX, sizeY)
     for (x <- 0 to sizeX - 1)
       for (y <- 0 to sizeY - 1) {
-        val tile = new TerrariaTile(buffer, x, y)
+        val tile = TerrariaTileParser.make(buffer, header, x, y)
         tiles(x)(y) = tile
       }
     tiles
@@ -177,7 +286,7 @@ class TerrariaWorld(resource: String) extends IO {
   private def parseChests: Array[TerrariaChest] = {
     val chests = Array.ofDim[TerrariaChest](1000)
     for (i <- 1 to 1000) {
-      chests(i - 1) = new TerrariaChest(buffer)
+      chests(i - 1) = new TerrariaChest(buffer, header)
     }
     chests
   }
@@ -201,7 +310,11 @@ class TerrariaWorld(resource: String) extends IO {
     npcs.toList
   }
 
-  def emitMap(fromX: Int, fromY: Int, toX: Int, toY: Int, outfile: String) = {
+  private def parseNpcNames(): TerrariaNpcNames = {
+    new TerrariaNpcNames(buffer, header)
+  }
+
+  def draw(fromX: Int, fromY: Int, toX: Int, toY: Int)(out: Character => Unit) = {
     println("Emitting map from " + fromX + "x" + fromY + " to " + toX + "x" + toY)
     val startX = fromX - 1
     val startY = fromY - 1
@@ -285,19 +398,16 @@ class TerrariaWorld(resource: String) extends IO {
         map(y)(x) = c
       }
     }
-    val sb = new StringBuilder
-    printToFile(outfile) { p =>
-      map.foreach { row =>
-        row.foreach { char =>
-          p.append(char)
-        }
-        p.append("\n")
+    map.foreach { row =>
+      row.foreach { char =>
+        out(char)
       }
+      out('\n')
     }
   }
 }
 
-object TerrariaWorld {
+object TerrariaWorld extends IO {
   private def argval(arg: String, argname: String): Option[String] = {
     if (arg.startsWith(argname))
       Some(arg.substring(argname.length()))
@@ -344,7 +454,13 @@ object TerrariaWorld {
       })
       argval(arg, "--outfile=").map(outfile = _)
     }
-    world.emitMap(fromx, fromy, tox.toInt, toy.toInt, outfile)
+    using(new java.io.FileWriter(outfile)) { fw =>
+      using(new java.io.PrintWriter(fw)) { pw =>
+        world.draw(fromx, fromy, tox.toInt, toy.toInt) { c =>
+          pw.append(c)
+        }
+      }
+    }
   }
 
   private def printStats(world: com.metatrope.tools.terraria.TerrariaWorld): Unit = {

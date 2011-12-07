@@ -2,6 +2,7 @@ terraria-tool
 
 This is a simple tool to parse Terraria world files.
 
+*It does not yet support Terraria 1.1 files!*
 
 To use, simply type:
 

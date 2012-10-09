@@ -1,6 +1,9 @@
 package com.metatrope.util
 import java.io.FileWriter
 import java.nio.ByteBuffer
+import java.io.FileInputStream
+import java.io.ByteArrayOutputStream
+import java.io.File
 
 trait IO {
   def printToFile(fileName: String)(op: java.io.PrintWriter => Unit) {
@@ -16,6 +19,34 @@ trait IO {
       f(closeme)
     } finally {
       closeme.close()
+    }
+  }
+
+  def loadFile(resource: String): ByteBuffer = {
+    import java.nio.channels.FileChannel.MapMode._
+    val file = new File(resource)
+    if (file.exists()) {
+      val fileSize = file.length
+      val stream = new FileInputStream(file)
+      return stream.getChannel.map(READ_ONLY, 0, fileSize)
+    } else {
+      val BUFSIZE = 4096
+      val stream = getClass.getResourceAsStream("/" + resource)
+      if (stream == null) {
+        println("File not found: " + resource)
+        sys.exit()
+      }
+      val out = new ByteArrayOutputStream(BUFSIZE);
+      val tmp = Array.ofDim[Byte](BUFSIZE);
+      var continue = true
+      while (continue) {
+        val r = stream.read(tmp);
+        if (r == -1)
+          continue = false
+        else
+          out.write(tmp, 0, r);
+      }
+      return ByteBuffer.wrap(out.toByteArray());
     }
   }
 
@@ -40,7 +71,7 @@ trait ByteReader {
   def readByte: Byte = {
     buffer.get
   }
-  
+
   // Byte is signed, but the Terraria file stores unsigned bytes
   def readUnsignedByte: Short = {
     (buffer.get & 0xff).toShort

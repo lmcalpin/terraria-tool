@@ -111,7 +111,7 @@ object TileType extends Enumeration {
     val Safe = new TileTypeValue(97, AlwaysTrue)
     val SkullCandle = new TileTypeValue(98, AlwaysTrue)
     val Trashcan = new TileTypeValue(99, AlwaysTrue)
-    val Candleabra = new TileTypeValue(100, AlwaysTrue)
+    val Candelabra = new TileTypeValue(100, AlwaysTrue)
     val Bookcase = new TileTypeValue(101, AlwaysTrue)
     val Throne = new TileTypeValue(102, AlwaysTrue)
     val Plate = new TileTypeValue(103, AlwaysTrue)

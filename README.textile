@@ -129,7 +129,7 @@ ppppp    ::::::  |||.::::::::..:..........:::==
 ====.==.========...=.  ..==..==.===.....====.=CC=..===..              
 ================..==.  =.==..======...I.==.....==.=====..             
 
-
+ 
 h2. Credit
 
 This project is based in part on the "MoreTerra":http://moreterra.codeplex.com/ Terraria World Viewer project.  If you just want to display a map of your Terraria world, you should look into MoreTerra.

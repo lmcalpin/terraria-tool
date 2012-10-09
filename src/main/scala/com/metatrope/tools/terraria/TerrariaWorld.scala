@@ -1,19 +1,12 @@
 package com.metatrope.tools.terraria
 
-import java.io.File
-import java.io.FileInputStream
-import java.nio.channels.FileChannel.MapMode._
-import java.nio.ByteOrder._
+import java.nio.ByteOrder.LITTLE_ENDIAN
 import java.nio.ByteBuffer
+
 import scala.collection.mutable.ListBuffer
-import java.io.InputStream
-import java.nio.channels.Channels
-import java.nio.channels.Channel
-import java.io.ByteArrayOutputStream
-import scala.util.control.Breaks._
-import com.metatrope.util.IO
+
 import com.metatrope.util.ByteReader
-import java.io.PrintWriter
+import com.metatrope.util.IO
 
 class TerrariaWorldHeader(val buffer: ByteBuffer) extends ByteReader {
   val version = readInt
@@ -244,33 +237,6 @@ class TerrariaWorld(resource: String) extends IO {
   val npcNames = parseNpcNames
   val footer = new TerrariaFooter(buffer)
 
-  private def loadFile(resource: String): ByteBuffer = {
-    val file = new File(resource)
-    if (file.exists()) {
-      val fileSize = file.length
-      val stream = new FileInputStream(file)
-      return stream.getChannel.map(READ_ONLY, 0, fileSize)
-    } else {
-      val BUFSIZE = 4096
-      val stream = getClass.getResourceAsStream("/" + resource)
-      if (stream == null) {
-        println("File not found: " + resource)
-        sys.exit()
-      }
-      val out = new ByteArrayOutputStream(BUFSIZE);
-      val tmp = Array.ofDim[Byte](BUFSIZE);
-      var continue = true
-      while (continue) {
-        val r = stream.read(tmp);
-        if (r == -1)
-          continue = false
-        else
-          out.write(tmp, 0, r);
-      }
-      return ByteBuffer.wrap(out.toByteArray());
-    }
-  }
-
   private def parseTiles: Array[Array[TerrariaTile]] = {
     val sizeX = header.sizex.toInt
     val sizeY = header.sizey.toInt
@@ -314,7 +280,7 @@ class TerrariaWorld(resource: String) extends IO {
     new TerrariaNpcNames(buffer, header)
   }
 
-  def draw(fromX: Int, fromY: Int, toX: Int, toY: Int)(out: Character => Unit) = {
+  def draw(fromX: Int, fromY: Int, toX: Int, toY: Int)(out:Char => Unit) = {
     println("Emitting map from " + fromX + "x" + fromY + " to " + toX + "x" + toY)
     val startX = fromX - 1
     val startY = fromY - 1
@@ -456,7 +422,7 @@ object TerrariaWorld extends IO {
     }
     using(new java.io.FileWriter(outfile)) { fw =>
       using(new java.io.PrintWriter(fw)) { pw =>
-        world.draw(fromx, fromy, tox.toInt, toy.toInt) { c =>
+        world.draw(fromx, fromy, tox.toInt, toy.toInt) { c:Char =>
           pw.append(c)
         }
       }
@@ -467,7 +433,7 @@ object TerrariaWorld extends IO {
     println("Loaded world: " + world.header.name)
     if (!world.footer.name.equalsIgnoreCase(world.header.name)) {
       println("WARNING: the world file was not parsed correctly!!!")
-      println("It is either corrupt or in a version too new for this parser to handle")
+      println("It is either corrupt or is a version too new for this parser to handle")
     }
     println("Size is: " + world.header.sizex + "x" + world.header.sizey)
     println("Spawn point is: " + world.header.spawnx + "x" + world.header.spawny)
